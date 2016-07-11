@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0" name="viewport">
+    <script type="text/javascript" src="lib/jquery-3.0.0.min.js"></script>
+    <script type="text/javascript" src="lib/underscore-min.js"></script>
+    <script type="text/javascript" src="lib/backbone-min.js"></script>
+    <script type="text/javascript" src="dest/app.js"></script>
+    <!--<script type="text/javascript" src="app/init.js"></script>-->
+    <!--<script type="text/javascript" src="app/model/Model.js"></script>-->
+    <!--<script type="text/javascript" src="app/view/MainView.js"></script>-->
+    <!--<script type="text/javascript" src="app/view/AddTask.js"></script>-->
+    <!--<script type="text/javascript" src="app/routers.js"></script>-->
+    <!--<script type="text/javascript" src="app/application.js"></script>-->
+
+    <link href="dest/page.min.css?v=146" rel="stylesheet">
+</head>
+<body>
+    <!--主页面-->
+    <script type="text/template" id="mainView-tpl">
+        <div class="headerTop">
+            <div id="header" class="calYear">
+                <select class="headerDept">
+                    <% _.each(user.dept, function (item, key) { %>
+                    <%if(App.dept && key == App.dept){%>
+                        <option value="<%=key%>" selected="true"><%=item%></option>
+                    <%}else{%>
+                        <option value="<%=key%>"><%=item%></option>
+                    <%}%>
+                    <% }); %>
+                </select>
+                <span class="headerBottom"><%= year %>年<%= App.monthNames[month] %></span>
+                <a href="#" class="headerHelp">使用帮助</a>
+                <a href="#add" class="headerAdd">新增安排</a>
+            </div>
+            <div class="calDay">
+                <%var i = -date.getDay()%>
+                <% _.each(week, function (item) { %>
+                    <% var today = new Date(date); %>
+                    <% var newDay = new Date(date);%>
+                    <% newDay.setDate(day + i + 1);i++;%>
+                    <span class="calElement num<%=item%>" specify="<%=newDay.getTime()%>">
+                        <span class=weekNumber><%=App.dayNames[newDay.getDay()]%></span><br>
+                        <span class=dayNumber><%=newDay.getDate()%></span>
+                    </span>
+                <% }); %>
+            </div>
+        </div>
+        <div class="taskList">
+            <% _.each(task, function (date, key) { %>
+                <p class="taskDate"><%=key%> 安排</p>
+                <% _.each(date, function (item, key) { %>
+                    <div class="taskTitle" taskid="<%=item.task_id%>" taskType="<%=item.type%>">
+                        <span><%=item.title%></span>
+                        <span> [<%=item.name%>]</span>
+                        <span> -<%=App.proType[item.type]%></span>
+                        <span class="taskTime"><%=item.arrive_time%>/<%=App.timeName[item.period]%></span>
+                        <span class="arrows">></span>
+                    </div>
+                <% }); %>
+            <% }); %>
+        </div>
+        <div class="mainBottom">
+            <div class="bottomLeft" id="lastWeek">上周</div>
+            <div class="bottomMiddle"><span id="thisWeek">本周</span></div>
+            <div class="bottomRight" id="nextWeek">下周</div>
+        </div>
+    </script>
+
+    <!--新增安排页面-->
+    <script type="text/template" id="add-tpl">
+        <div class="addPage">
+            <div id="addTask" class="addTask">新增安排</div>
+            <div class="addType">
+                <a href="#addTest" class="addSpan addTest">测试</a>
+                <a href="#addHandle" class="addSpan addHandle">实施</a>
+                <a href="#addAfter" class="addSpan addAfter">售后</a>
+                <a href="#addBefore" class="addSpan addBefore">售前</a>
+                <a href="#addOther" class="addSpan addOther">其他</a>
+            </div>
+            <div class="addBottom">
+                <a href="#">使用帮助</a>
+            </div>
+        </div>
+    </script>
+
+    <!--新增测试上门-->
+    <script type="text/template" id="test-tpl">
+        <div class="addTaskForm" id="testForm">
+            <div class="addTask"><%=title%></div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户名称</label>
+                <input class="formText" type="text" name="customer_name" value="<%=customer_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">行业</label>
+                <select name="customer_industry" class="formSelect">
+                    <% _.each(App.industryName, function (item, key) { %>
+                        <%if(customer_industry==key){%>
+                        <option value="<%=key%>" selected="true"><%=item%></option>
+                        <%} else {%>
+                        <option value="<%=key%>"><%=item%></option>
+                        <%}%>
+                    <% }); %>
+                </select>
+                <label class="formLabel">客户关系</label>
+                <select name="customer_rel" class="formSelect">
+                    <% _.each(App.relName, function (item, key) { %>
+                        <%if(customer_rel==key){%>
+                        <option value="<%=key%>" selected="true"><%=item%></option>
+                        <%} else {%>
+                        <option value="<%=key%>"><%=item%></option>
+                        <%}%>
+                    <% }); %>
+                </select>
+                <label class="formLabel">项目级别</label>
+                <select name="project_level" class="formSelect">
+                    <% _.each(App.levelName, function (item, key) { %>
+                        <%if(project_level==key){%>
+                        <option value="<%=key%>" selected="true"><%=item%></option>
+                        <%} else {%>
+                        <option value="<%=key%>"><%=item%></option>
+                        <%}%>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户接口人姓名</label>
+                <input class="formText" type="text" name="customer_contact_name" value="<%=customer_contact_name%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">客户接口人电话</label>
+                <input class="formText" type="number" name="customer_contact_tel" value="<%=customer_contact_tel%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">渠道公司名称</label>
+                <input class="formText" type="text" name="sale_name" value="<%=sale_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">渠道联系方式</label>
+                <input class="formText" type="number" name="sale_tel" value="<%=sale_tel%>" required="required">
+            </div>
+            <div class="formItem formTop">
+                <label class="formLabel">期望到达现场时间</label>
+                <input type="datetime-local" name="arrive_time" value="<%=arrive_time%>"/>
+            </div>
+            <div class="formArea formBottom">
+                <label class="formLabel">预估工时</label>
+                <select name="man_hour" class="formSelect">
+                    <% _.each(App.timeName, function (item, key) { %>
+                    <%if(man_hour==key){%>
+                    <option value="<%=key%>" selected="true"><%=item%></option>
+                    <%} else {%>
+                    <option value="<%=key%>"><%=item%></option>
+                    <%}%>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">测试功能简述</label>
+                <textarea name="test_desc"><%=test_desc%></textarea>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">竞争对手情况</label>
+                <textarea name="test_competitor"><%=test_competitor%></textarea>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">其他注意事项</label>
+                <textarea name="desc"><%=desc%></textarea>
+            </div>
+            <%if(create_user){%>
+            <div class="detailButtom">
+                <span class="detailSpanTop">创建人：<%=create_user%></span>
+                <span class="detailSpanLeft">创建时间：<%=create_time%></span>
+                <span class="detailSpanRight">修改时间：<%=mod_time%></span>
+            </div>
+            <% } %>
+            <%if(!user_id || user_id==App.user_id){%>
+            <div class="submitButton">提交申请</div>
+            <% } %>
+            <%if(user_id && user_id==App.user_id){%>
+            <div class="deleteButton">删除</div>
+            <% } %>
+        </div>
+    </script>
+
+    <!--新增实施上门-->
+    <script type="text/template" id="handle-tpl">
+        <div class="addTaskForm" id="handleForm">
+            <div class="addTask"><%=title%></div>
+            <div class="formItem formTop">
+                <label class="formLabel">项目名称</label>
+                <input class="formText" type="text" name="project_name" value="<%=project_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">项目级别</label>
+                <select name="project_level" class="formSelect">
+                    <% _.each(App.levelName, function (item, key) { %>
+                    <%if(project_level==key){%>
+                    <option value="<%=key%>" selected="true"><%=item%></option>
+                    <%} else {%>
+                    <option value="<%=key%>"><%=item%></option>
+                    <%}%>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户接口人姓名</label>
+                <input class="formText" type="text" name="customer_contact_name" value="<%=customer_contact_name%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">客户接口人电话</label>
+                <input class="formText" type="number" name="customer_contact_tel" value="<%=customer_contact_tel%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">渠道公司名称</label>
+                <input class="formText" type="text" name="sale_name" value="<%=sale_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">渠道联系方式</label>
+                <input class="formText" type="number" name="sale_tel" value="<%=sale_tel%>" required="required">
+            </div>
+            <div class="formItem formTop formBottom">
+                <label class="formLabel">期望到达现场时间</label>
+                <input type="datetime-local" name="arrive_time" value="<%=arrive_time%>"/>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">其他注意事项</label>
+                <textarea name="desc"><%=desc%></textarea>
+            </div>
+            <%if(create_user){%>
+            <div class="detailButtom">
+                <span class="detailSpanTop">创建人：<%=create_user%></span>
+                <span class="detailSpanLeft">创建时间：<%=create_time%></span>
+                <span class="detailSpanRight">修改时间：<%=mod_time%></span>
+            </div>
+            <% } %>
+            <%if(!user_id || user_id==App.user_id){%>
+            <div class="submitButton">提交申请</div>
+            <% } %>
+            <%if(user_id && user_id==App.user_id){%>
+            <div class="deleteButton">删除</div>
+            <% } %>
+        </div>
+    </script>
+
+    <!--新增售后上门-->
+    <script type="text/template" id="after-tpl">
+        <div class="addTaskForm" id="afterForm">
+            <div class="addTask"><%=title%></div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户名称</label>
+                <input class="formText" type="text" name="customer_name" value="<%=customer_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">上门类型</label>
+                <select name="online_type" class="formSelect">
+                    <% _.each(App.afterTypeName, function (item, key) { %>
+                    <%if(online_type==key){%>
+                    <option value="<%=key%>" selected="true"><%=item%></option>
+                    <%} else {%>
+                    <option value="<%=key%>"><%=item%></option>
+                    <%}%>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户接口人姓名</label>
+                <input class="formText" type="text" name="customer_contact_name" value="<%=customer_contact_name%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">客户接口人电话</label>
+                <input class="formText" type="number" name="customer_contact_tel" value="<%=customer_contact_tel%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">渠道公司名称</label>
+                <input class="formText" type="text" name="sale_name" value="<%=sale_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">渠道联系方式</label>
+                <input class="formText" type="number" name="sale_tel" value="<%=sale_tel%>" required="required">
+            </div>
+            <div class="formItem formTop formBottom">
+                <label class="formLabel">期望到达现场时间</label>
+                <input type="datetime-local" name="arrive_time" value="<%=arrive_time%>"/>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">售后问题描述</label>
+                <textarea name="desc"><%=desc%></textarea>
+            </div>
+            <%if(create_user){%>
+            <div class="detailButtom">
+                <span class="detailSpanTop">创建人：<%=create_user%></span>
+                <span class="detailSpanLeft">创建时间：<%=create_time%></span>
+                <span class="detailSpanRight">修改时间：<%=mod_time%></span>
+            </div>
+            <% } %>
+            <%if(!user_id || user_id==App.user_id){%>
+            <div class="submitButton">提交申请</div>
+            <% } %>
+            <%if(user_id && user_id==App.user_id){%>
+            <div class="deleteButton">删除</div>
+            <% } %>
+        </div>
+    </script>
+
+    <!--新增售前上门-->
+    <script type="text/template" id="before-tpl">
+        <div class="addTaskForm" id="beforeForm">
+            <div class="addTask"><%=title%></div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户名称</label>
+                <input class="formText" type="text" name="customer_name" value="<%=customer_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">上门类型</label>
+                <select name="online_type" class="formSelect">
+                    <% _.each(App.beforeTypeName, function (item, key) { %>
+                    <%if(online_type==key){%>
+                    <option value="<%=key%>" selected="true"><%=item%></option>
+                    <%} else {%>
+                    <option value="<%=key%>"><%=item%></option>
+                    <%}%>
+                    <% }); %>
+                </select>
+            </div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户接口人姓名</label>
+                <input class="formText" type="text" name="customer_contact_name" value="<%=customer_contact_name%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">客户接口人电话</label>
+                <input class="formText" type="number" name="customer_contact_tel" value="<%=customer_contact_tel%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">渠道公司名称</label>
+                <input class="formText" type="text" name="sale_name" value="<%=sale_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">渠道联系方式</label>
+                <input class="formText" type="number" name="sale_tel" value="<%=sale_tel%>" required="required">
+            </div>
+            <div class="formItem formTop formBottom">
+                <label class="formLabel">期望到达现场时间</label>
+                <input type="datetime-local" name="arrive_time" value="<%=arrive_time%>"/>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">售前工作内容简述</label>
+                <textarea name="desc"><%=desc%></textarea>
+            </div>
+            <%if(create_user){%>
+            <div class="detailButtom">
+                <span class="detailSpanTop">创建人：<%=create_user%></span>
+                <span class="detailSpanLeft">创建时间：<%=create_time%></span>
+                <span class="detailSpanRight">修改时间：<%=mod_time%></span>
+            </div>
+            <% } %>
+            <%if(!user_id || user_id==App.user_id){%>
+            <div class="submitButton">提交申请</div>
+            <% } %>
+            <%if(user_id && user_id==App.user_id){%>
+            <div class="deleteButton">删除</div>
+            <% } %>
+        </div>
+    </script>
+
+    <!--新增其他上门-->
+    <script type="text/template" id="other-tpl">
+        <div class="addTaskForm" id="otherForm">
+            <div class="addTask"><%=title%></div>
+            <div class="formItem formTop formBottom">
+                <label class="formLabel">客户名称</label>
+                <input class="formText" type="text" name="customer_name" value="<%=customer_name%>" required="required">
+            </div>
+            <div class="formItem formTop">
+                <label class="formLabel">客户接口人姓名</label>
+                <input class="formText" type="text" name="customer_contact_name" value="<%=customer_contact_name%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">客户接口人电话</label>
+                <input class="formText" type="number" name="customer_contact_tel" value="<%=customer_contact_tel%>" required="required">
+            </div>
+            <div class="formItem">
+                <label class="formLabel">渠道公司名称</label>
+                <input class="formText" type="text" name="sale_name" value="<%=sale_name%>" required="required">
+            </div>
+            <div class="formItem formBottom">
+                <label class="formLabel">渠道联系方式</label>
+                <input class="formText" type="number" name="sale_tel" value="<%=sale_tel%>" required="required">
+            </div>
+            <div class="formItem formTop formBottom">
+                <label class="formLabel">期望到达现场时间</label>
+                <input type="datetime-local" name="arrive_time" value="<%=arrive_time%>"/>
+            </div>
+            <div class="formArea formTop formBottom">
+                <label class="formLabel">工作内容简述</label>
+                <textarea name="desc"><%=desc%></textarea>
+            </div>
+            <%if(create_user){%>
+            <div class="detailButtom">
+                <span class="detailSpanTop">创建人：<%=create_user%></span>
+                <span class="detailSpanLeft">创建时间：<%=create_time%></span>
+                <span class="detailSpanRight">修改时间：<%=mod_time%></span>
+            </div>
+            <% } %>
+            <%if(!user_id || user_id==App.user_id){%>
+            <div class="submitButton">提交申请</div>
+            <% } %>
+            <%if(user_id && user_id==App.user_id){%>
+            <div class="deleteButton">删除</div>
+            <% } %>
+        </div>
+    </script>
+
+    <!--解析后的模板-->
+    <div id="body"></div>
+</body>
+</html>
