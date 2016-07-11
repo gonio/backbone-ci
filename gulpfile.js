@@ -10,6 +10,7 @@ var gulp   = require("gulp"),
     del = require('del'),
     concat = require('gulp-concat'),
     rename = require('gulp-rename'),
+    through2 = require('through2'),
     build_dir = './dest';
 
 // 注册任务
@@ -28,17 +29,8 @@ gulp.task('watch',function(){
 
 //////////////////////////// clean /////////////////////////////////
 gulp.task('clean', function (cb) {
-    del([build_dir + '/*', '!'+ build_dir + '/robots.txt'], cb);
+    del([build_dir + '/*', 'index.html', '!'+ build_dir + '/robots.txt'], cb);
 });
-
-//////////////////// nodemon //////////////////////
-//gulp.task('dev', function() {
-//    nodemon({ script: 'index.js', ext: 'jade styl js', ignore: ['./node_modules/**'] })
-//        .on('change', ['stylus'])
-//        .on('restart', function () {
-//            console.log('restarted!')
-//        });
-//});
 
 // 合并，压缩 js 文件
 gulp.task('minifyjs', function() {
@@ -57,5 +49,27 @@ gulp.task('minifycss', function() {
         .pipe(gulp.dest(build_dir));
 });
 
+// 处理 html 文件
+gulp.task('replace', function() {
+    gulp.src('index_gulp.html')
+        .pipe(rename('index.html'))
+        .pipe(contentReplace(replaceIndexLink)).pipe(gulp.dest('.'));
+});
+
+// 处理文件中内容时调用
+function contentReplace(modifier) {
+    return through2.obj(function(file, encoding, done) {
+        var content = modifier(String(file.contents));
+        file.contents = new Buffer(content);
+        this.push(file);
+        done();
+    });
+}
+
+//替换时间戳
+function replaceIndexLink (data) {
+    return data.replace(/(<timeCache>)/g, new Date().getTime());
+}
+
 // 默认任务
-gulp.task('default',['clean', 'minifycss', 'minifyjs']);
+gulp.task('default',['clean', 'minifycss', 'minifyjs', 'replace']);
